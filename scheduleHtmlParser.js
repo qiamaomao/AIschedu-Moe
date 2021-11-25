@@ -1,7 +1,40 @@
 function scheduleHtmlParser(html) {
+  // 初始化 result
   let result = []
-  result = parseList(html)
+  const $ = cheerio.load(html, { decodeEntities: false })
 
+  //  遍历所有课
+  $(".moe").find(".common-item").each(function (index, ele) {
+
+    // 遍历每一门课
+    $(this).find('.common-course').each(function () {
+
+      // 获取课程信息
+      let commonCourse = $(this).text().trim().split(" ")
+
+      // 追加 课程
+      result.push({
+        //课程名
+        name: $(ele).find('.name').text(),
+        //教室
+        position: commonCourse[4],
+        //老师     
+        teacher: commonCourse[5],
+        //weeks
+        weeks: weeks(commonCourse[0]),
+        //Day
+        day: day(commonCourse[1]),
+        //sections
+        sections: sections(commonCourse[2])
+      })
+    })
+
+  })
+
+
+  console.log(result)
+
+  // 初始化 _sectionTimes
   let _sectionTimes = [
     {
       "section": 1,
@@ -48,96 +81,44 @@ function scheduleHtmlParser(html) {
   return { courseInfos: result, sectionTimes: _sectionTimes }
 }
 
-function parseList(html) {
+// 处理day
+function day(day) {
+  switch (day) {
+    case "周一":
+      return 1
+    case "周二":
+      return 2
+    case "周三":
+      return 3
+    case "周四":
+      return 4
+    case "周五":
+      return 5
+    case "周六":
+      return 6
+    case "周日":
+      return 7
+  }
 
-  const $ = cheerio.load(html, { decodeEntities: false })
+}
 
-  let result = []
-
-  $(".week-wrap").find(".common-week").each((index, ele) => {
-
-    let day = ++index
-    let m = 1
-    $(ele).find(".item-wrap").each( (index, ele)=> {
-
-      $(ele).find(".common-item").each( (index, ele) => {
-
-        const course = {}
-        course.name = $(ele).find('.name').text().split(" ")[0]
-        course.teacher = $(ele).find('.teacher>.content').text().split(" ")[0].trim()
-        course.weeks = []
-        for (let i = +($(ele).find('.time>.content').text()[2]); i <= ($(ele).find('.time>.content').text().split("周")[0].slice(4, -1)); i++) {
-          course.weeks.push(i)
-        }
-        course.day = day
-        course.sections = []
-
-        let e
-        switch (day) {
-          case 1:
-            e = "周一"
-            break;
-          case 2:
-            e = "周二"
-            break;
-          case 3:
-            e = "周三"
-            break;
-          case 4:
-            e = "周四"
-            break;
-          case 5:
-            e = "周五"
-            break;
-          case 6:
-            e = "周六"
-            break;
-          case 7:
-            e = "周日"
-            break;
-        }
-
-        let ooo = []
-        $(ele).find('.course-content').find(".course-item-list").each((index, ele) => {
-          ooo.push({
-            day: $(ele).find('.time>.content').text().split(" ")[1],
-            pos: $(ele).find('.address>.content').text()
-          })
-        })
-
-        for (const item of ooo) {
-          if (item.day == e) {
-            course.position = item.pos
-          }
-        }
-
-        let str = $(ele).find('.time>.content').text()
-        str = str.slice(str.search(e))
-
-        let o = str.split(" ")[1].split("-")
-
-
-        for (const key of o.values()) {
-
-          if (key.length == 1) {
-            course.sections.push({
-              section: key
-            })
-          } else {
-            course.sections.push({
-              section: key.slice(0, -1)
-            })
-          }
-
-
-        }
-
-        result.push(course)
-
-      })
-    })
-
+// 处理 sections
+function sections(str) {
+  let sections = str.split("-").map((item) => {
+    return {
+      section: item.split("节")[0]
+    }
   })
-  console.log(result);
-  return result
+
+  return sections
+}
+
+// 处理 weeks
+function weeks(str) {
+  let weeks = []
+  let [a, b] = str.match(/\d+/g)
+  for (let i = +a; i <= +b; i++) {
+    weeks.push(i)
+  }
+  return weeks
 }
